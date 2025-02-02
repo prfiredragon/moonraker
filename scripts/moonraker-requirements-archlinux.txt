@@ -1,0 +1,18 @@
+# Python dependencies for Moonraker
+--find-links=python_wheels
+tornado
+pyserial
+pillow
+streaming-form-data
+distro
+inotify-simple
+libnacl
+paho-mqtt
+zeroconf
+preprocess-cancellation
+jinja2
+dbus-fast
+apprise
+ldap3
+python-periphery
+importlib_metadata
