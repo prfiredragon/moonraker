@@ -1,7 +1,7 @@
 #!/bin/bash
 # This script installs Moonraker on Debian based Linux distros.
 
-SUPPORTED_DISTROS="debian ubuntu"
+SUPPORTED_DISTROS="debian ubuntu arch"
 PYTHONDIR="${MOONRAKER_VENV:-${HOME}/moonraker-env}"
 SYSTEMDDIR="/etc/systemd/system"
 REBUILD_ENV="${MOONRAKER_REBUILD_ENV:-n}"
@@ -119,6 +119,8 @@ detect_distribution() {
         if ( compare_version ">=" "24.10" ); then
             PACKAGES="${PACKAGES} iw"
         fi
+    elif [ ${DISTRIBUTION} = "arch" ]; then
+	PACKAGES="python-virtualenv"
     fi
     # *** AUTO GENERATED OS PACKAGE DEPENDENCIES END ***
 }
@@ -143,15 +145,28 @@ install_packages()
         echo "Bypassing system package installation."
         return
     fi
-    report_status "Installing Moonraker System Packages..."
-    echo "Linux Distribution: ${DISTRIBUTION} ${DISTRO_VERSION}"
-    echo "Packages: ${PACKAGES}"
-    # Update system package info
-    report_status "Running apt-get update..."
-    sudo apt-get update --allow-releaseinfo-change
 
-    # Install desired packages
-    sudo apt-get install --yes ${PACKAGES}
+    if [ ${DISTRIBUTION} = "arch" ]; then
+	report_status "Installing Moonraker System Packages..."
+        echo "Linux Distribution: ${DISTRIBUTION} ${DISTRO_VERSION}"
+        echo "Packages: ${PACKAGES}"
+        # Update system package info
+        report_status "Running yay -Sy..."
+	yay -Sy
+
+	# Install desired packages
+	yay -S --needed  --noconfirm ${PACKAGES} 
+    else
+    	report_status "Installing Moonraker System Packages..."
+    	echo "Linux Distribution: ${DISTRIBUTION} ${DISTRO_VERSION}"
+    	echo "Packages: ${PACKAGES}"
+    	# Update system package info
+    	report_status "Running apt-get update..."
+    	sudo apt-get update --allow-releaseinfo-change
+	
+    	# Install desired packages
+    	sudo apt-get install --yes ${PACKAGES}
+   fi
 }
 
 # Step 4: Create python virtual environment
@@ -177,7 +192,11 @@ create_virtualenv()
     export SKIP_CYTHON=1
     if [ $IS_SRC_DIST = "y" ]; then
         report_status "Installing Moonraker python dependencies..."
-        ${PYTHONDIR}/bin/pip install -r ${SRCDIR}/scripts/moonraker-requirements.txt
+    	if [ ${DISTRIBUTION} = "arch" ]; then
+           ${PYTHONDIR}/bin/pip install -r ${SRCDIR}/scripts/moonraker-requirements-archlinux.txt
+	else
+           ${PYTHONDIR}/bin/pip install -r ${SRCDIR}/scripts/moonraker-requirements.txt
+	fi
 
         if [ ${SPEEDUPS} = "y" ]; then
             report_status "Installing Speedups..."
@@ -387,6 +406,7 @@ verify_ready
 detect_distribution
 cleanup_legacy
 install_packages
+#exit 1
 create_virtualenv
 init_data_path
 install_script
